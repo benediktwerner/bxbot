@@ -111,6 +111,9 @@ class BxBot:
                 self.chats.append(chat_id)
                 self.bot.sendMessage(chat_id, "Hello!")
                 self.save_chats()
+            else:
+                print(msg["chat"]["username"], "asked if I'm still here")
+                self.bot.sendMessage(chat_id, "Yes, I'm still here!")
 
 
 BxBot().loop()
