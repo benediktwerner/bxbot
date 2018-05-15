@@ -84,7 +84,7 @@ class Storage:
     def load_chats(self):
         col = self.sheet.col_values(1)
         self.next_chat_row = len(col) + 1
-        return (int(x) for x in col)
+        return [int(x) for x in col]
 
     def add_chat(self, chat_id):
         self.sheet.update_cell(self.next_chat_row, 1, chat_id)
