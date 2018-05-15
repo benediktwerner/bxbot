@@ -107,14 +107,8 @@ class Storage:
     def get(self, key):
         row = self._get_row(key)
         if row:
-            return self.sheet.cell(row, 2).value
+            return self.sheet.cell(row, 3).value
         return None
-
-    def set_last_pwn_time(self, last_pwn_time):
-        self.sheet.update_cell(1, 2, last_pwn_time)
-
-    def get_last_pwn_time(self):
-        return self.sheet.cell(1, 2).value
 
 
 class BxBot:
