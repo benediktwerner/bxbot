@@ -13,7 +13,10 @@ from telepot.loop import MessageLoop
 CHATS_FILE = "chats.txt"
 TOKEN_FILE = "token.txt"
 
-def read_token():
+def get_bot_token():
+    token = os.environ.get("BOT_TOKEN", None)
+    if token:
+        return token
     if len(sys.argv) > 1:
         return sys.argv[1]
     with open(TOKEN_FILE) as f:
@@ -44,7 +47,7 @@ class BxBot:
     def __init__(self):
         self.load_chats()
         self.last_pwn_time = None
-        self.token = read_token()
+        self.token = get_bot_token()
         self.bot = telepot.Bot(self.token)
         self.last_rank = "1"
         MessageLoop(self.bot, self.handle).run_as_thread()
