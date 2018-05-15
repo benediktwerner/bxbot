@@ -140,7 +140,7 @@ class BxBot:
     
     def send_debug(self, msg):
         if self.maintainer_chat_id:
-            self.bot.sendMessage(int(self.maintainer_chat_id, msg))
+            self.bot.sendMessage(int(self.maintainer_chat_id), msg)
     
     def loop(self, time_between_updates=600):
         try:
