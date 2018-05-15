@@ -12,6 +12,8 @@ from telepot.loop import MessageLoop
 
 CHATS_FILE = "chats.txt"
 TOKEN_FILE = "token.txt"
+LOG_FILE = "log.txt"
+
 
 def get_bot_token():
     token = os.environ.get("BOT_TOKEN", None)
@@ -19,10 +21,17 @@ def get_bot_token():
         return token
     if len(sys.argv) > 1:
         return sys.argv[1]
+    if not os.path.isfile(TOKEN_FILE):
+        log("No bot token found")
+        exit(1)
     with open(TOKEN_FILE) as f:
         for line in f:
             return line.rstrip()
 
+
+def log(*text):
+    with open(LOG_FILE, "a") as f:
+        print("[{}]".format(time.ctime()), " ".join(text), file=f)
 
 def get_scoreboard():
     scoreboard = requests.get("https://pwning.sec.in.tum.de/t").text
@@ -51,6 +60,7 @@ class BxBot:
         self.bot = telepot.Bot(self.token)
         self.last_rank = "1"
         MessageLoop(self.bot, self.handle).run_as_thread()
+        log("Bot started")
     
     def load_chats(self):
         self.chats = []
@@ -72,7 +82,7 @@ class BxBot:
             time.sleep(time_between_updates)
     
     def send_all(self, msg):
-        print("Sending to", len(self.chats), "chats:", msg)
+        log("Sending to", len(self.chats), "chats")
         for chat in self.chats:
             self.bot.sendMessage(chat, msg)
             time.sleep(1)
@@ -102,7 +112,7 @@ class BxBot:
 
         if content_type == "text":
             if chat_id not in self.chats:
-                print("New user:", msg["chat"]["username"])
+                log("New user:", msg["chat"]["username"])
                 self.chats.append(chat_id)
                 self.bot.sendMessage(chat_id, "Hello!")
                 self.save_chats()
