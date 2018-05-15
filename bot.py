@@ -70,8 +70,7 @@ class Storage:
             client_id = os.environ.get("GOOGLE_API_CLIENT_ID", None)
 
             if not all((private_key_id, private_key_base64, client_email, client_id)):
-                print("No Google API credentials found", file=sys.stderr)
-                exit(1)
+                raise Exception("No Google API credentials found")
 
             return ServiceAccountCredentials.from_json_keyfile_dict({
                     "type": "service_account",
@@ -89,29 +88,68 @@ class Storage:
     def add_chat(self, chat_id):
         self.sheet.update_cell(self.next_chat_row, 1, chat_id)
         self.next_chat_row += 1
+    
+    def _get_row(self, key):
+        keys = self.sheet.col_values(2)
+        if key not in keys:
+            return None
+        return keys.index(key) + 1
+
+    def set(self, key, value):
+        row = self._get_row(key)
+        if row:
+            self.sheet.update_cell(row, 3, value)
+        else:
+            row = len(self.sheet.col_values(2)) + 1
+            self.sheet.update_cell(row, 2, key)
+            self.sheet.update_cell(row, 3, value)
+
+    def get(self, key):
+        row = self._get_row(key)
+        if row:
+            return self.sheet.cell(row, 2).value
+        return None
 
     def set_last_pwn_time(self, last_pwn_time):
         self.sheet.update_cell(1, 2, last_pwn_time)
 
     def get_last_pwn_time(self):
-        return self.sheet.cell(1, 2)
+        return self.sheet.cell(1, 2).value
 
 
 class BxBot:
     def __init__(self):
-        self.storage = Storage()
-        self.chats = self.storage.load_chats()
-        self.last_pwn_time = self.storage.get_last_pwn_time()
         self.token = get_bot_token()
         self.bot = telepot.Bot(self.token)
-        self.last_rank = "1"
+
+        try:
+            self.storage = Storage()
+            self.chats = self.storage.load_chats()
+            self.last_pwn_time = self.storage.get("last_pwn_time")
+            self.last_rank = str(self.storage.get("last_rank"))
+        except Exception as e:
+            print(e, file=sys.stderr)
+            self.send_debug("[ERROR] " + str(e))
+            exit(1)
+        
+        self.maintainer_chat_id = os.environ.get("MAINTAINER_CHAT_ID", None)
         MessageLoop(self.bot, self.handle).run_as_thread()
-        print("Bot started", file=sys.stderr)
+
+        print("Bot started")
+        self.send_debug("[DEBUG] Bot started")
+    
+    def send_debug(self, msg):
+        if self.maintainer_chat_id:
+            self.bot.sendMessage(int(self.maintainer_chat_id, msg))
     
     def loop(self, time_between_updates=600):
-        while True:
-            self.update()
-            time.sleep(time_between_updates)
+        try:
+            while True:
+                self.update()
+                time.sleep(time_between_updates)
+        except Exception as e:
+            print(e, file=sys.stderr)
+            self.send_debug("[ERROR] " + str(e))
     
     def send_all(self, msg):
         print("Sending to", len(self.chats), "chats")
@@ -124,13 +162,13 @@ class BxBot:
         updates = []
 
         for time, headline in news:
-            if self.last_pwn_time and time == self.last_pwn_time:
+            if time == self.last_pwn_time:
                 break
             else:
                 updates.append(time + ": " + headline)
         if news:
             self.last_pwn_time = news[0][0]
-            self.storage.set_last_pwn_time(self.last_pwn_time)
+            self.storage.set("last_pwn_time", self.last_pwn_time)
         if updates:
             self.send_all("\n".join(updates))
 
@@ -139,6 +177,7 @@ class BxBot:
                 smiley = ":)" if row[0] < self.last_rank else ":("
                 self.send_all("Team 0xCD's rank changed from {} to {} {}".format(self.last_rank, row[0], smiley))
                 self.last_rank = row[0]
+                self.storage.set("last_rank", self.last_rank)
                 
     def handle(self, msg):
         content_type, _, chat_id = telepot.glance(msg)
