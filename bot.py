@@ -69,7 +69,7 @@ class Storage:
             client_email = os.environ.get("GOOGLE_API_CLIENT_EMAIL", None)
             client_id = os.environ.get("GOOGLE_API_CLIENT_ID", None)
 
-            if not all(private_key_id, private_key_base64, client_email, client_id):
+            if not all((private_key_id, private_key_base64, client_email, client_id)):
                 print("No Google API credentials found", file=sys.stderr)
                 exit(1)
 
