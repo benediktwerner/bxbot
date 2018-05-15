@@ -31,7 +31,7 @@ def get_bot_token():
 
 def log(*text):
     with open(LOG_FILE, "a") as f:
-        print("[{}]".format(time.ctime()), " ".join(text), file=f)
+        print("[{}]".format(time.ctime()), " ".join(str(x) for x in text), file=f)
 
 def get_scoreboard():
     scoreboard = requests.get("https://pwning.sec.in.tum.de/t").text
