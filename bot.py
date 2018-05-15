@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import base64
+import gspread
 import os
 import re
 import requests
@@ -7,11 +9,14 @@ import sys
 import telepot
 import time
 
+from oauth2client.service_account import ServiceAccountCredentials
 from telepot.loop import MessageLoop
 
 
 CHATS_FILE = "chats.txt"
 TOKEN_FILE = "token.txt"
+GOOGLE_CREDENTIALS_FILE = "google_api_secret.json"
+GOOGLE_SHEETS_URL = "https://docs.google.com/spreadsheets/d/1GDAj4AEgSfJW_sxoyMCEKNiu650t6Jr0ul_lRFz6Q84"
 
 
 def get_bot_token():
@@ -47,30 +52,62 @@ def get_scoreboard():
     return news_cleaned, scores_cleaned
 
 
+class Storage:
+    def __init__(self):
+        client = gspread.authorize(self._get_credentials())
+        self.sheet = client.open_by_url(GOOGLE_SHEETS_URL).sheet1
+        self.next_chat_row = 1
+
+    def _get_credentials(self):
+        scope = ("https://spreadsheets.google.com/feeds",)
+
+        if os.path.isfile(GOOGLE_CREDENTIALS_FILE):
+            return ServiceAccountCredentials.from_json_keyfile_name("google_api_secret.json", scope)
+        else:
+            private_key_id = os.environ.get("GOOGLE_API_PRIVATE_KEY_ID", None)
+            private_key_base64 = os.environ.get("GOOGLE_API_PRIVATE_KEY_BASE64", None)
+            client_email = os.environ.get("GOOGLE_API_CLIENT_EMAIL", None)
+            client_id = os.environ.get("GOOGLE_API_CLIENT_ID", None)
+
+            if not all(private_key_id, private_key_base64, client_email, client_id):
+                print("No Google API credentials found", file=sys.stderr)
+                exit(1)
+
+            return ServiceAccountCredentials.from_json_keyfile_dict({
+                    "type": "service_account",
+                    "private_key_id": private_key_id,
+                    "private_key": base64.b64decode(private_key_base64),
+                    "client_email": client_email,
+                    "client_id": client_id
+                }, scope)
+
+    def load_chats(self):
+        col = self.sheet.col_values(1)
+        self.next_chat_row = len(col) + 1
+        return (int(x) for x in col)
+
+    def add_chat(self, chat_id):
+        self.sheet.update_cell(self.next_chat_row, 1, chat_id)
+        self.next_chat_row += 1
+
+    def set_last_pwn_time(self, last_pwn_time):
+        self.sheet.update_cell(1, 2, last_pwn_time)
+
+    def get_last_pwn_time(self):
+        return self.sheet.cell(1, 2)
+
+
 class BxBot:
     def __init__(self):
-        self.load_chats()
-        self.last_pwn_time = None
+        self.storage = Storage()
+        self.chats = self.storage.load_chats()
+        self.last_pwn_time = self.storage.get_last_pwn_time()
         self.token = get_bot_token()
         self.bot = telepot.Bot(self.token)
         self.last_rank = "1"
         MessageLoop(self.bot, self.handle).run_as_thread()
         print("Bot started", file=sys.stderr)
     
-    def load_chats(self):
-        self.chats = []
-        if not os.path.isfile(CHATS_FILE):
-            return
-        with open(CHATS_FILE) as f:
-            for line in f:
-                if line:
-                    self.chats.append(int(line.rstrip()))
-    
-    def save_chats(self):
-        with open(CHATS_FILE, "w") as f:
-            for chat in self.chats:
-                print(chat, file=f)
-
     def loop(self, time_between_updates=600):
         while True:
             self.update()
@@ -84,17 +121,18 @@ class BxBot:
 
     def update(self):
         news, scores = get_scoreboard()
-        msg = ""
+        updates = []
 
         for time, headline in news:
             if self.last_pwn_time and time == self.last_pwn_time:
                 break
             else:
-                msg += "\n" + time + ": " + headline
+                updates.append(time + ": " + headline)
         if news:
             self.last_pwn_time = news[0][0]
-        if msg:
-            self.send_all("New pwns:" + msg)
+            self.storage.set_last_pwn_time(self.last_pwn_time)
+        if updates:
+            self.send_all("\n".join(updates))
 
         for row in scores:
             if row[1] == "Team" and row[2] == "0xCD" and row[0] != self.last_rank:
@@ -110,7 +148,7 @@ class BxBot:
                 print("New user:", msg["chat"]["username"])
                 self.chats.append(chat_id)
                 self.bot.sendMessage(chat_id, "Hello!")
-                self.save_chats()
+                self.storage.add_chat(chat_id)
             else:
                 print(msg["chat"]["username"], "asked if I'm still here")
                 self.bot.sendMessage(chat_id, "Yes, I'm still here!")
