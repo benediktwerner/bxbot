@@ -18,6 +18,7 @@ CHATS_FILE = "chats.txt"
 TOKEN_FILE = "token.txt"
 GOOGLE_CREDENTIALS_FILE = "google_api_secret.json"
 GOOGLE_SHEETS_URL = "https://docs.google.com/spreadsheets/d/1GDAj4AEgSfJW_sxoyMCEKNiu650t6Jr0ul_lRFz6Q84"
+SCOREBOARD_URL = "https://pwning.sec.in.tum.de/t"
 
 
 def get_bot_token():
@@ -35,7 +36,7 @@ def get_bot_token():
 
 
 def get_scoreboard():
-    scoreboard = requests.get("https://pwning.sec.in.tum.de/t").text
+    scoreboard = requests.get(SCOREBOARD_URL).text
     scoreboard = re.sub(r"\x1b\[3?\dm", "", scoreboard) # Remove colors
     scoreboard = scoreboard[scoreboard.find("Last Pwns:")+len("Last Pwns:\n"):]
 
@@ -174,7 +175,7 @@ class BxBot:
             if time == self.last_pwn_time:
                 break
             else:
-                updates.append(time + ": " + headline)
+                updates.insert(0, headline)
         if updates:
             self.last_pwn_time = news[0][0]
             self.storage.set("last_pwn_time", self.last_pwn_time)
