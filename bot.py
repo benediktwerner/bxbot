@@ -195,6 +195,7 @@ class BxBot:
             user = msg["chat"].get("username", chat_id)
             if chat_id not in self.chats:
                 print("New user:", user)
+                self.send_debug(":eight_spoked_asterisk: New user: " + user, None)
                 self.chats.append(chat_id)
                 self.bot.sendMessage(chat_id, "Hello!")
                 self.storage.add_chat(chat_id)
