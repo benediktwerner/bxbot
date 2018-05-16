@@ -54,9 +54,9 @@ def get_scoreboard():
 
 class Storage:
     def __init__(self):
-        client = gspread.authorize(self._get_credentials())
-        self.sheet = client.open_by_url(GOOGLE_SHEETS_URL).sheet1
-        self.next_chat_row = 1
+        self.credentials = self._get_credentials()
+        self._sheet = None
+        self.last_login = 0
 
     def _get_credentials(self):
         scope = ("https://spreadsheets.google.com/feeds",)
@@ -80,14 +80,21 @@ class Storage:
                     "client_id": client_id
                 }, scope)
 
+    @property
+    def sheet(self):
+        now = time.time()
+        if now - self.last_login > 3500:
+            self.last_login = now
+            client = gspread.authorize(self.credentials)
+            self._sheet = client.open_by_url(GOOGLE_SHEETS_URL).sheet1
+        return self._sheet
+
     def load_chats(self):
-        col = self.sheet.col_values(1)
-        self.next_chat_row = len(col) + 1
-        return [int(x) for x in col]
+        return [int(x) for x in self.sheet.col_values(1)]
 
     def add_chat(self, chat_id):
-        self.sheet.update_cell(self.next_chat_row, 1, chat_id)
-        self.next_chat_row += 1
+        next_row = len(self.sheet.col_values(1)) + 1
+        self.sheet.update_cell(next_row, 1, chat_id)
     
     def _get_row(self, key):
         keys = self.sheet.col_values(2)
@@ -132,18 +139,18 @@ class BxBot:
         print("Bot started")
         self.send_debug("[DEBUG] Bot started")
     
-    def send_debug(self, msg):
-        if self.maintainer_chat_id:
-            self.bot.sendMessage(int(self.maintainer_chat_id), msg)
-    
     def loop(self, time_between_updates=600):
         try:
             while True:
                 self.update()
                 time.sleep(time_between_updates)
         except Exception as e:
-            print(e, file=sys.stderr)
             self.send_debug("[ERROR] " + str(e))
+            raise
+
+    def send_debug(self, msg):
+        if self.maintainer_chat_id:
+            self.bot.sendMessage(int(self.maintainer_chat_id), msg)
     
     def send_all(self, msg):
         print("Sending to", len(self.chats), "chats")
@@ -160,10 +167,9 @@ class BxBot:
                 break
             else:
                 updates.append(time + ": " + headline)
-        if news:
+        if updates:
             self.last_pwn_time = news[0][0]
             self.storage.set("last_pwn_time", self.last_pwn_time)
-        if updates:
             self.send_all("\n".join(updates))
 
         for row in scores:
