@@ -159,7 +159,7 @@ class BxBot:
         if self.maintainer_chat_id:
             if msg_type in type_prefix:
                 msg = type_prefix[msg_type] + " " + msg
-            self.bot.sendMessage(int(self.maintainer_chat_id), emoji.emojize(msg))
+            self.bot.sendMessage(int(self.maintainer_chat_id), emoji.emojize(msg, use_aliases=True))
     
     def send_all(self, msg):
         print("Sending to", len(self.chats), "chats")
