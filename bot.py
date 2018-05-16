@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import base64
+import emoji
 import gspread
 import os
 import re
@@ -157,7 +158,7 @@ class BxBot:
         if self.maintainer_chat_id:
             if msg_type in type_prefix:
                 msg = type_prefix[msg_type] + " " + msg
-            self.bot.sendMessage(int(self.maintainer_chat_id), msg)
+            self.bot.sendMessage(int(self.maintainer_chat_id), emoji.emojize(msg))
     
     def send_all(self, msg):
         print("Sending to", len(self.chats), "chats")

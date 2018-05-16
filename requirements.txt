@@ -2,3 +2,4 @@ requests
 telepot
 gspread
 oauth2client
+emoji
