@@ -130,14 +130,14 @@ class BxBot:
             self.last_rank = str(self.storage.get("last_rank"))
         except Exception as e:
             print(e, file=sys.stderr)
-            self.send_debug("[ERROR] " + str(e))
+            self.send_debug(str(e), "error")
             exit(1)
         
         self.maintainer_chat_id = os.environ.get("MAINTAINER_CHAT_ID", None)
         MessageLoop(self.bot, self.handle).run_as_thread()
 
         print("Bot started")
-        self.send_debug("[DEBUG] Bot started")
+        self.send_debug("Bot started")
     
     def loop(self, time_between_updates=600):
         try:
@@ -145,11 +145,18 @@ class BxBot:
                 self.update()
                 time.sleep(time_between_updates)
         except Exception as e:
-            self.send_debug("[ERROR] " + str(e))
+            self.send_debug(str(e), "error")
             raise
 
-    def send_debug(self, msg):
+    def send_debug(self, msg, msg_type="debug"):
+        type_prefix = {
+            "debug": ":construction:",
+            "warning": ":warning",
+            "error": ":x:ERROR"
+        }
         if self.maintainer_chat_id:
+            if msg_type in type_prefix:
+                msg = type_prefix[msg_type] + " " + msg
             self.bot.sendMessage(int(self.maintainer_chat_id), msg)
     
     def send_all(self, msg):
