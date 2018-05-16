@@ -192,13 +192,14 @@ class BxBot:
         content_type, _, chat_id = telepot.glance(msg)
 
         if content_type == "text":
+            user = msg["chat"].get("username", chat_id)
             if chat_id not in self.chats:
-                print("New user:", msg["chat"]["username"])
+                print("New user:", user)
                 self.chats.append(chat_id)
                 self.bot.sendMessage(chat_id, "Hello!")
                 self.storage.add_chat(chat_id)
             else:
-                print(msg["chat"]["username"], "asked if I'm still here")
+                print(user, "asked if I'm still here")
                 self.bot.sendMessage(chat_id, "Yes, I'm still here!")
 
 
