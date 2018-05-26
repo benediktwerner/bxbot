@@ -56,6 +56,11 @@ def get_scoreboard():
 
 
 class Storage:
+    CHATS_COL = 1
+    DATA_KEY_COL = 2
+    DATA_VAL_COL = DATA_KEY_COL + 1
+    MSG_COL = 4
+
     def __init__(self):
         self.credentials = self._get_credentials()
         self._sheet = None
@@ -93,14 +98,14 @@ class Storage:
         return self._sheet
 
     def load_chats(self):
-        return [int(x) for x in self.sheet.col_values(1)]
+        return [int(x) for x in self.sheet.col_values(self.CHATS_COL)]
 
     def add_chat(self, chat_id):
-        next_row = len(self.sheet.col_values(1)) + 1
-        self.sheet.update_cell(next_row, 1, chat_id)
+        next_row = len(self.sheet.col_values(self.CHATS_COL)) + 1
+        self.sheet.update_cell(next_row, self.CHATS_COL, chat_id)
     
-    def _get_row(self, key):
-        keys = self.sheet.col_values(2)
+    def _get_row(self, key, col=None):
+        keys = self.sheet.col_values(col if col is not None else self.DATA_KEY_COL)
         if key not in keys:
             return None
         return keys.index(key) + 1
@@ -108,17 +113,22 @@ class Storage:
     def set(self, key, value):
         row = self._get_row(key)
         if row:
-            self.sheet.update_cell(row, 3, value)
+            self.sheet.update_cell(row, self.DATA_VAL_COL, value)
         else:
-            row = len(self.sheet.col_values(2)) + 1
-            self.sheet.update_cell(row, 2, key)
-            self.sheet.update_cell(row, 3, value)
+            row = len(self.sheet.col_values(self.DATA_KEY_COL)) + 1
+            self.sheet.update_cell(row, self.DATA_KEY_COL, key)
+            self.sheet.update_cell(row, self.DATA_VAL_COL, value)
 
     def get(self, key):
         row = self._get_row(key)
         if row:
-            return self.sheet.cell(row, 3).value
+            return self.sheet.cell(row, self.DATA_VAL_COL).value
         return None
+
+    def save_msg(self, user, text):
+        row = len(self.sheet.col_values(self.MSG_COL)) + 1
+        self.sheet.update_cell(row, self.MSG_COL, user)
+        self.sheet.update_cell(row, self.MSG_COL + 1, text)
 
 
 class BxBot:
@@ -190,16 +200,17 @@ class BxBot:
         content_type, _, chat_id = telepot.glance(msg)
 
         if content_type == "text":
-            user = msg["chat"].get("username", chat_id)
+            user = msg["chat"].get("username", str(chat_id))
             if chat_id not in self.chats:
                 print("New user:", user)
-                self.send_debug(":eight_spoked_asterisk: New user: " + user, None)
+                self.send_debug(":eight_spoked_asterisk: New user: " + user + "\n" + msg["text"], None)
                 self.chats.append(chat_id)
                 self.bot.sendMessage(chat_id, "Hello!")
                 self.storage.add_chat(chat_id)
             else:
                 print(user, "asked if I'm still here")
                 self.bot.sendMessage(chat_id, "Yes, I'm still here!")
+            self.storage.save_msg(user, msg["text"])
 
 
 if __name__ == "__main__":
