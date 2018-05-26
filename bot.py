@@ -64,7 +64,7 @@ class Storage:
         scope = ("https://spreadsheets.google.com/feeds",)
 
         if os.path.isfile(GOOGLE_CREDENTIALS_FILE):
-            return ServiceAccountCredentials.from_json_keyfile_name("google_api_secret.json", scope)
+            return ServiceAccountCredentials.from_json_keyfile_name(GOOGLE_CREDENTIALS_FILE, scope)
         else:
             private_key_id = os.environ.get("GOOGLE_API_PRIVATE_KEY_ID", None)
             private_key_base64 = os.environ.get("GOOGLE_API_PRIVATE_KEY_BASE64", None)
