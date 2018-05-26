@@ -14,6 +14,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from telepot.loop import MessageLoop
 
 
+TIME_BETWEEN_RESTARTS = 300
 CHATS_FILE = "chats.txt"
 TOKEN_FILE = "token.txt"
 GOOGLE_CREDENTIALS_FILE = "google_api_secret.json"
@@ -121,7 +122,7 @@ class Storage:
 
 
 class BxBot:
-    def __init__(self):
+    def __init__(self, restarted=False):
         self.token = get_bot_token()
         self.bot = telepot.Bot(self.token)
 
@@ -138,17 +139,14 @@ class BxBot:
         self.maintainer_chat_id = os.environ.get("MAINTAINER_CHAT_ID", None)
         MessageLoop(self.bot, self.handle).run_as_thread()
 
-        print("Bot started")
-        self.send_debug("Bot started")
+        msg = "Bot restarted" if restarted else "Bot started"
+        print(msg)
+        self.send_debug(msg)
     
     def loop(self, time_between_updates=600):
-        try:
-            while True:
-                self.update()
-                time.sleep(time_between_updates)
-        except Exception as e:
-            self.send_debug(str(e), "error")
-            raise
+        while True:
+            self.update()
+            time.sleep(time_between_updates)
 
     def send_debug(self, msg, msg_type="debug"):
         type_prefix = {
@@ -204,4 +202,23 @@ class BxBot:
                 self.bot.sendMessage(chat_id, "Yes, I'm still here!")
 
 
-BxBot().loop()
+if __name__ == "__main__":
+    restarted = False
+    errors = []
+
+    while True:
+        try:
+            bot = BxBot()
+            while errors:
+                bot.send_debug(str(errors[0]), "error")
+                errors.pop(0)
+            bot.loop(restarted)
+        except KeyboardInterrupt:
+            print("Interrupted by User. Exiting ...")
+            exit(1)
+        except Exception as e:
+            print("Caught exception:", e)
+            errors.append(e)
+
+        time.sleep(TIME_BETWEEN_RESTARTS)
+        restarted = True
