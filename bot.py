@@ -219,11 +219,11 @@ if __name__ == "__main__":
 
     while True:
         try:
-            bot = BxBot()
+            bot = BxBot(restarted)
             while errors:
                 bot.send_debug(str(errors[0]), "error")
                 errors.pop(0)
-            bot.loop(restarted)
+            bot.loop()
         except KeyboardInterrupt:
             print("Interrupted by User. Exiting ...")
             exit(1)
