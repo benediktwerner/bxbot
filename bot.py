@@ -98,12 +98,21 @@ class Storage:
         return self._sheet
 
     def load_chats(self):
-        return [int(x) for x in self.sheet.col_values(self.CHATS_COL)]
+        return [int(x) for x in self.sheet.col_values(self.CHATS_COL) if x]
 
     def add_chat(self, chat_id):
-        next_row = len(self.sheet.col_values(self.CHATS_COL)) + 1
+        col = self.sheet.col_values(self.CHATS_COL)
+        if all(col):
+            next_row = len(self.sheet.col_values(self.CHATS_COL)) + 1
+        else:
+            next_row = col.index(3) + 1
         self.sheet.update_cell(next_row, self.CHATS_COL, chat_id)
     
+    def remove_chat(self, chat_id):
+        row = self.sheet.col_values(self.CHATS_COL).index(str(chat_id)) + 1
+        if row >= 1:
+            self.sheet.update_cell(row, self.CHATS_COL, "")
+
     def _get_row(self, key, col=None):
         keys = self.sheet.col_values(col if col is not None else self.DATA_KEY_COL)
         if key not in keys:
@@ -172,7 +181,11 @@ class BxBot:
     def send_all(self, msg):
         print("Sending to", len(self.chats), "chats")
         for chat in self.chats:
-            self.bot.sendMessage(chat, msg)
+            try:
+                self.bot.sendMessage(chat, msg)
+            except telepot.exception.BotWasBlockedError:
+                self.storage.remove_chat(chat)
+                self.send_debug(":door: User left: " + str(chat), None)
             time.sleep(1)
 
     def update(self):
