@@ -105,12 +105,13 @@ class Storage:
         if all(col):
             next_row = len(self.sheet.col_values(self.CHATS_COL)) + 1
         else:
-            next_row = col.index(3) + 1
+            next_row = col.index("") + 1
         self.sheet.update_cell(next_row, self.CHATS_COL, chat_id)
     
     def remove_chat(self, chat_id):
-        row = self.sheet.col_values(self.CHATS_COL).index(str(chat_id)) + 1
-        if row >= 1:
+        col = self.sheet.col_values(self.CHATS_COL)
+        if str(chat_id) in col:
+            row = col.index(str(chat_id)) + 1
             self.sheet.update_cell(row, self.CHATS_COL, "")
 
     def _get_row(self, key, col=None):
@@ -185,6 +186,7 @@ class BxBot:
                 self.bot.sendMessage(chat, msg)
             except telepot.exception.BotWasBlockedError:
                 self.storage.remove_chat(chat)
+                self.chats.remove(chat)
                 self.send_debug(":door: User left: " + str(chat), None)
             time.sleep(1)
 
