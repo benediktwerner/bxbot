@@ -1,6 +1,12 @@
 # BinEx Bot
 
+### **Note:** The bot is now offline!
+
+This is a [Telegram](https://telegram.org/) bot for the "Binary Exploitation" lab course at TUM (Technical University of Munich) that sends you a message whenever the pwning leaderboard changes. I wrote it in 2018 when I did the lab course.
+
 To use the bot visit <https://telegram.me/binex_bot> and send it any message. It will acknowledge your existence with a "Hello" and send you updates when new pwns happen.
+
+The bot is hosted for free on *Heroku* and uses *Google Docs* as a free mini-database.
 
 ## Deployment to Heroku
 1. Add config vars:
