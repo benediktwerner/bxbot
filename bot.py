@@ -141,7 +141,7 @@ class Storage:
 
 
 class BxBot:
-    def __init__(self, restarted=False):
+    def __init__(self):
         self.token = get_bot_token()
         self.bot = telepot.Bot(self.token)
 
@@ -157,13 +157,23 @@ class BxBot:
         self.maintainer_chat_id = os.environ.get("MAINTAINER_CHAT_ID", None)
         MessageLoop(self.bot, self.handle).run_as_thread()
 
-        msg = "Bot restarted" if restarted else "Bot started"
-        print(msg)
-        self.send_debug(msg)
+        print("Bot started")
+        self.send_debug("Bot started")
     
     def loop(self, time_between_updates=600):
         while True:
-            self.update()
+            try:
+                self.update()
+            except KeyboardInterrupt:
+                print("Interrupted by User. Exiting ...")
+                exit(1)
+            except Exception as e:
+                time.sleep(TIME_BETWEEN_RESTARTS)
+                msg = f"Caught an exception: {type(e).__name__} {e}"
+                print(msg)
+                self.send_debug(msg, "error")
+                continue
+
             time.sleep(time_between_updates)
 
     def send_debug(self, msg, msg_type="debug"):
@@ -221,22 +231,4 @@ class BxBot:
 
 
 if __name__ == "__main__":
-    restarted = False
-    errors = []
-
-    while True:
-        try:
-            bot = BxBot(restarted)
-            while errors:
-                bot.send_debug(str(errors[0]), "error")
-                errors.pop(0)
-            bot.loop()
-        except KeyboardInterrupt:
-            print("Interrupted by User. Exiting ...")
-            exit(1)
-        except Exception as e:
-            print("Caught exception:", e)
-            errors.append(e)
-
-        time.sleep(TIME_BETWEEN_RESTARTS)
-        restarted = True
+    BxBot().loop()
