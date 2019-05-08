@@ -18,7 +18,7 @@ TIME_BETWEEN_RESTARTS = 300
 TOKEN_FILE = "token.txt"
 GOOGLE_CREDENTIALS_FILE = "google_api_secret.json"
 GOOGLE_SHEETS_URL = "https://docs.google.com/spreadsheets/d/1GDAj4AEgSfJW_sxoyMCEKNiu650t6Jr0ul_lRFz6Q84"
-SCOREBOARD_URL = "https://pwning.sec.in.tum.de/t"
+SCOREBOARD_URL = "https://leeting.sec.in.tum.de/t"
 
 
 def get_bot_token():
