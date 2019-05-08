@@ -1,2 +1,3 @@
 token*
 google_api_secret.json
+.mypy_cache
