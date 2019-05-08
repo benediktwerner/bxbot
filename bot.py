@@ -149,7 +149,6 @@ class BxBot:
             self.storage = Storage()
             self.chats = self.storage.load_chats()
             self.last_pwn_time = self.storage.get("last_pwn_time")
-            self.last_rank = str(self.storage.get("last_rank"))
         except Exception as e:
             print(e, file=sys.stderr)
             self.send_debug(str(e), "error")
@@ -190,7 +189,7 @@ class BxBot:
             time.sleep(1)
 
     def update(self):
-        news, scores = get_scoreboard()
+        news, _ = get_scoreboard()
         updates = []
 
         for time, headline in news:
@@ -198,17 +197,11 @@ class BxBot:
                 break
             else:
                 updates.insert(0, headline)
+
         if updates:
             self.last_pwn_time = news[0][0]
             self.storage.set("last_pwn_time", self.last_pwn_time)
             self.send_all("\n".join(updates))
-
-        for row in scores:
-            if row[1] == "Team" and row[2] == "0xCD" and row[0] != self.last_rank:
-                smiley = ":)" if row[0] < self.last_rank else ":("
-                self.send_all("Team 0xCD's rank changed from {} to {} {}".format(self.last_rank, row[0], smiley))
-                self.last_rank = row[0]
-                self.storage.set("last_rank", self.last_rank)
                 
     def handle(self, msg):
         content_type, _, chat_id = telepot.glance(msg)
