@@ -35,6 +35,13 @@ def get_bot_token():
             return line.rstrip()
 
 
+def get_maintainer_chat_id():
+    chat_id = os.environ.get("MAINTAINER_CHAT_ID")
+    if chat_id is None:
+        return None
+    return int(chat_id)
+
+
 def get_scoreboard():
     scoreboard = requests.get(SCOREBOARD_URL).text
     scoreboard = re.sub(r"\x1b\[3?\dm", "", scoreboard)  # Remove colors
@@ -159,7 +166,7 @@ class BxBot:
             self.send_debug(str(e), "error")
             exit(1)
 
-        self.maintainer_chat_id = os.environ.get("MAINTAINER_CHAT_ID", None)
+        self.maintainer_chat_id = get_maintainer_chat_id()
         MessageLoop(self.bot, self.handle).run_as_thread()
 
         print("Bot started")
@@ -189,12 +196,11 @@ class BxBot:
             "warning": ":warning:",
             "error": ":x:ERROR",
         }
-        if self.maintainer_chat_id:
+        if self.maintainer_chat_id is not None:
             if msg_type in type_prefix:
                 msg = type_prefix[msg_type] + " " + msg
-            self.bot.sendMessage(
-                int(self.maintainer_chat_id), emoji.emojize(msg, use_aliases=True)
-            )
+            msg = emoji.emojize(msg, use_aliases=True)
+            self.bot.sendMessage(self.maintainer_chat_id, msg)
 
     def send_all(self, msg):
         print("Sending to", len(self.chats), "chats")
