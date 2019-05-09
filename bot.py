@@ -37,8 +37,8 @@ def get_bot_token():
 
 def get_scoreboard():
     scoreboard = requests.get(SCOREBOARD_URL).text
-    scoreboard = re.sub(r"\x1b\[3?\dm", "", scoreboard) # Remove colors
-    scoreboard = scoreboard[scoreboard.find("Last Pwns:")+len("Last Pwns:\n"):]
+    scoreboard = re.sub(r"\x1b\[3?\dm", "", scoreboard)  # Remove colors
+    scoreboard = scoreboard[scoreboard.find("Last Pwns:") + len("Last Pwns:\n") :]
 
     news, scores, *_ = scoreboard.split("\n\nScores:\n")
     news_cleaned = []
@@ -69,7 +69,9 @@ class Storage:
         scope = ("https://spreadsheets.google.com/feeds",)
 
         if os.path.isfile(GOOGLE_CREDENTIALS_FILE):
-            return ServiceAccountCredentials.from_json_keyfile_name(GOOGLE_CREDENTIALS_FILE, scope)
+            return ServiceAccountCredentials.from_json_keyfile_name(
+                GOOGLE_CREDENTIALS_FILE, scope
+            )
         else:
             private_key_id = os.environ.get("GOOGLE_API_PRIVATE_KEY_ID", None)
             private_key_base64 = os.environ.get("GOOGLE_API_PRIVATE_KEY_BASE64", None)
@@ -79,13 +81,16 @@ class Storage:
             if not all((private_key_id, private_key_base64, client_email, client_id)):
                 raise Exception("No Google API credentials found")
 
-            return ServiceAccountCredentials.from_json_keyfile_dict({
+            return ServiceAccountCredentials.from_json_keyfile_dict(
+                {
                     "type": "service_account",
                     "private_key_id": private_key_id,
                     "private_key": base64.b64decode(private_key_base64),
                     "client_email": client_email,
-                    "client_id": client_id
-                }, scope)
+                    "client_id": client_id,
+                },
+                scope,
+            )
 
     @property
     def sheet(self):
@@ -106,7 +111,7 @@ class Storage:
         else:
             next_row = col.index("") + 1
         self.sheet.update_cell(next_row, self.CHATS_COL, chat_id)
-    
+
     def remove_chat(self, chat_id):
         col = self.sheet.col_values(self.CHATS_COL)
         if str(chat_id) in col:
@@ -153,13 +158,13 @@ class BxBot:
             print(e, file=sys.stderr)
             self.send_debug(str(e), "error")
             exit(1)
-        
+
         self.maintainer_chat_id = os.environ.get("MAINTAINER_CHAT_ID", None)
         MessageLoop(self.bot, self.handle).run_as_thread()
 
         print("Bot started")
         self.send_debug("Bot started")
-    
+
     def run(self):
         while True:
             try:
@@ -182,13 +187,15 @@ class BxBot:
         type_prefix = {
             "debug": ":construction:",
             "warning": ":warning:",
-            "error": ":x:ERROR"
+            "error": ":x:ERROR",
         }
         if self.maintainer_chat_id:
             if msg_type in type_prefix:
                 msg = type_prefix[msg_type] + " " + msg
-            self.bot.sendMessage(int(self.maintainer_chat_id), emoji.emojize(msg, use_aliases=True))
-    
+            self.bot.sendMessage(
+                int(self.maintainer_chat_id), emoji.emojize(msg, use_aliases=True)
+            )
+
     def send_all(self, msg):
         print("Sending to", len(self.chats), "chats")
         for chat in self.chats:
@@ -197,7 +204,11 @@ class BxBot:
             except telepot.exception.BotWasBlockedError:
                 self.remove_chat(chat)
             except telepot.exception.TelegramError as e:
-                if len(e.args) == 3 and e.args[0] == "Forbidden: user is deactivated" and e.args[1] == 403:
+                if (
+                    len(e.args) == 3
+                    and e.args[0] == "Forbidden: user is deactivated"
+                    and e.args[1] == 403
+                ):
                     self.remove_chat(chat)
                 else:
                     raise
@@ -222,7 +233,7 @@ class BxBot:
             self.last_pwn_time = news[0][0]
             self.storage.set("last_pwn_time", self.last_pwn_time)
             self.send_all("\n".join(updates))
-                
+
     def handle(self, msg):
         content_type, _, chat_id = telepot.glance(msg)
 
@@ -230,7 +241,9 @@ class BxBot:
             user = msg["chat"].get("username", str(chat_id))
             if chat_id not in self.chats:
                 print("New user:", user)
-                self.send_debug(":eight_spoked_asterisk: New user: " + user + "\n" + msg["text"], None)
+                self.send_debug(
+                    f":eight_spoked_asterisk: New user: {user}\n{msg['text']}", None
+                )
                 self.chats.append(chat_id)
                 self.bot.sendMessage(chat_id, "Hello!")
                 self.storage.add_chat(chat_id)
