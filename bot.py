@@ -195,10 +195,18 @@ class BxBot:
             try:
                 self.bot.sendMessage(chat, msg)
             except telepot.exception.BotWasBlockedError:
-                self.storage.remove_chat(chat)
-                self.chats.remove(chat)
-                self.send_debug(":door: User left: " + str(chat), None)
+                self.remove_chat(chat)
+            except telepot.exception.TelegramError as e:
+                if len(e.args) == 3 and e.args[0] == "Forbidden: user is deactivated" and e.args[1] == 403:
+                    self.remove_chat(chat)
+                else:
+                    raise
             time.sleep(1)
+
+    def remove_chat(self, chat):
+        self.storage.remove_chat(chat)
+        self.chats.remove(chat)
+        self.send_debug(f":door: User left: {chat}", None)
 
     def update(self):
         news, _ = get_scoreboard()
