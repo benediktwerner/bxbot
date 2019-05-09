@@ -160,20 +160,22 @@ class BxBot:
         print("Bot started")
         self.send_debug("Bot started")
     
-    def loop(self, time_between_updates=600):
+    def run(self):
         while True:
             try:
-                self.update()
+                self.loop()
             except KeyboardInterrupt:
                 print("Interrupted by User. Exiting ...")
-                exit(1)
+                return
             except Exception as e:
-                time.sleep(TIME_BETWEEN_RESTARTS)
                 msg = f"Caught an exception: {type(e).__name__} {e}"
                 print(msg)
                 self.send_debug(msg, "error")
-                continue
+                time.sleep(TIME_BETWEEN_RESTARTS)
 
+    def loop(self):
+        while True:
+            self.update()
             time.sleep(time_between_updates)
 
     def send_debug(self, msg, msg_type="debug"):
@@ -231,4 +233,4 @@ class BxBot:
 
 
 if __name__ == "__main__":
-    BxBot().loop()
+    BxBot().run()
