@@ -15,6 +15,7 @@ from telepot.loop import MessageLoop
 
 
 TIME_BETWEEN_RESTARTS = 300
+TIME_BETWEEN_UPDATES = 600
 TOKEN_FILE = "token.txt"
 GOOGLE_CREDENTIALS_FILE = "google_api_secret.json"
 GOOGLE_SHEETS_URL = "https://docs.google.com/spreadsheets/d/1GDAj4AEgSfJW_sxoyMCEKNiu650t6Jr0ul_lRFz6Q84"
@@ -188,7 +189,7 @@ class BxBot:
     def loop(self):
         while True:
             self.update()
-            time.sleep(time_between_updates)
+            time.sleep(TIME_BETWEEN_UPDATES)
 
     def send_debug(self, msg, msg_type="debug"):
         type_prefix = {
