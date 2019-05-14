@@ -125,7 +125,7 @@ def get_times():
     result = []
     for team_name, total_time in sorted(teams.items(), key=lambda x: x[1]):
         result.append(f"{team_name:20}{time_int_to_str(total_time)}")
-    return "<pre>" + "\n".join(result) + "</pre>"
+    return "\n".join(result)
 
 
 class Storage:
@@ -321,7 +321,7 @@ class BxBot:
                 self.bot.sendMessage(chat_id, "Hello!")
                 self.storage.add_chat(chat_id)
             elif msg["text"] == "/times":
-                self.bot.sendMessage(chat_id, get_times())
+                self.bot.sendMessage(chat_id, f"<pre>{get_times()}</pre>", parse_mode="HTML")
                 return
             else:
                 print(user, "asked if I'm still here")
