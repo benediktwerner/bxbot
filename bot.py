@@ -10,6 +10,8 @@ import sys
 import telepot
 import time
 
+from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
 from oauth2client.service_account import ServiceAccountCredentials
 from telepot.loop import MessageLoop
 
@@ -19,7 +21,30 @@ TIME_BETWEEN_UPDATES = 600
 TOKEN_FILE = "token.txt"
 GOOGLE_CREDENTIALS_FILE = "google_api_secret.json"
 GOOGLE_SHEETS_URL = "https://docs.google.com/spreadsheets/d/1GDAj4AEgSfJW_sxoyMCEKNiu650t6Jr0ul_lRFz6Q84"
-SCOREBOARD_URL = "https://leeting.sec.in.tum.de/t"
+SCOREBOARD_URL = "https://leeting.sec.in.tum.de/"
+SCOREBOARD_TERMINAL_URL = "https://leeting.sec.in.tum.de/t"
+TIME_UNITS = {"s": 1, "m": 60, "h": 60 * 60}
+
+
+def time_str_to_int(s):
+    result = 0
+
+    for p in s.split(" "):
+        if p in ("day", "days"):
+            continue
+        elif p[-1] not in TIME_UNITS:
+            result += int(p) * 60 * 60 * 24
+        else:
+            result += int(p[:-1]) * TIME_UNITS[p[-1]]
+
+    return result
+
+
+def time_int_to_str(i):
+    delta = timedelta(seconds=i)
+    mins, secs = divmod(delta.seconds, 60)
+    hours, mins = divmod(mins, 60)
+    return f"{delta.days:3}:{hours:02}:{mins:02}:{secs:02}"
 
 
 def get_bot_token():
@@ -44,7 +69,7 @@ def get_maintainer_chat_id():
 
 
 def get_scoreboard():
-    scoreboard = requests.get(SCOREBOARD_URL).text
+    scoreboard = requests.get(SCOREBOARD_TERMINAL_URL).text
     scoreboard = re.sub(r"\x1b\[3?\dm", "", scoreboard)  # Remove colors
     scoreboard = scoreboard[scoreboard.find("Last Pwns:") + len("Last Pwns:\n") :]
 
@@ -60,6 +85,47 @@ def get_scoreboard():
             continue
         scores_cleaned.append([x for x in s.split(" ") if x])
     return news_cleaned, scores_cleaned
+
+
+def get_times():
+    now = datetime.now()
+    soup = BeautifulSoup(requests.get(SCOREBOARD_URL).text, "html.parser")
+
+    teams = {}
+    task_times = {}
+
+    tasks_table = soup.findAll("table")[1]
+    for task_row in tasks_table.tbody.findAll("tr"):
+        cols = task_row.findAll("td")
+        task_name = cols[0].text
+        if not task_name.startswith("pwn"):
+            continue
+        task_name = task_name[3:]
+        task_start = datetime.strptime(cols[2].text, "%Y-%m-%d %H:%M:%S")
+        task_times[task_name] = int((now - task_start).total_seconds())
+
+    score_table = soup.find("table", id="scores")
+    task_names = list(map(lambda c: c.text, score_table.thead.tr.findAll("th")[2:]))
+
+    for row in score_table.tbody.findAll("tr"):
+        cols = row.findAll("td")
+        team_name = cols[1].text
+        total_time = 0
+
+        for i, task in enumerate(cols[2:-1]):
+            if task_names[i] not in task_times:
+                continue
+            if task.span.has_attr("class") and "solved" in task.span.attrs["class"]:
+                total_time += time_str_to_int(task.span.attrs["title"])
+            else:
+                total_time += task_times[task_names[i]]
+
+        teams[team_name] = total_time
+
+    result = []
+    for team_name, total_time in sorted(teams.items(), key=lambda x: x[1]):
+        result.append(f"{team_name:20}{time_int_to_str(total_time)}")
+    return "".join(result)
 
 
 class Storage:
@@ -254,6 +320,9 @@ class BxBot:
                 self.chats.append(chat_id)
                 self.bot.sendMessage(chat_id, "Hello!")
                 self.storage.add_chat(chat_id)
+            elif msg["text"] == "/times":
+                self.bot.sendMessage(chat_id, get_times())
+                return
             else:
                 print(user, "asked if I'm still here")
                 self.bot.sendMessage(chat_id, "Yes, I'm still here!")

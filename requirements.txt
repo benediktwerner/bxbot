@@ -3,3 +3,4 @@ telepot
 gspread
 oauth2client
 emoji
+beautifulsoup4
