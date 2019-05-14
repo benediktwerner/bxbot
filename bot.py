@@ -125,7 +125,7 @@ def get_times():
     result = []
     for team_name, total_time in sorted(teams.items(), key=lambda x: x[1]):
         result.append(f"{team_name:20}{time_int_to_str(total_time)}")
-    return "".join(result)
+    return "```" + "\n".join(result) + "```"
 
 
 class Storage:
