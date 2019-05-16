@@ -90,6 +90,7 @@ def get_scoreboard():
 
 def get_times():
     now = datetime.now(TIMEZONE)
+    print(now)
     soup = BeautifulSoup(requests.get(SCOREBOARD_URL).text, "html.parser")
 
     teams = {}
@@ -103,6 +104,7 @@ def get_times():
             continue
         task_name = task_name[3:]
         task_start = datetime.strptime(cols[2].text, "%Y-%m-%d %H:%M:%S").astimezone(TIMEZONE)
+        print(task_name, task_start)
         task_times[task_name] = int((now - task_start).total_seconds())
 
     score_table = soup.find("table", id="scores")
