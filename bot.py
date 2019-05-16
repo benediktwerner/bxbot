@@ -115,7 +115,7 @@ def get_times():
         for i, task in enumerate(cols[2:-1]):
             if task_names[i] not in task_times:
                 continue
-            if task.span.has_attr("class") and "solved" in task.span.attrs["class"]:
+            if task.span.has_attr("title"):
                 total_time += time_str_to_int(task.span.attrs["title"])
             else:
                 total_time += task_times[task_names[i]]
