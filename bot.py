@@ -11,7 +11,7 @@ import telepot
 import time
 
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from oauth2client.service_account import ServiceAccountCredentials
 from telepot.loop import MessageLoop
 
@@ -24,6 +24,7 @@ GOOGLE_SHEETS_URL = "https://docs.google.com/spreadsheets/d/1GDAj4AEgSfJW_sxoyMC
 SCOREBOARD_URL = "https://leeting.sec.in.tum.de/"
 SCOREBOARD_TERMINAL_URL = "https://leeting.sec.in.tum.de/t"
 TIME_UNITS = {"s": 1, "m": 60, "h": 60 * 60}
+TIMEZONE = timezone(timedelta(hours=2))
 
 
 def time_str_to_int(s):
@@ -88,7 +89,7 @@ def get_scoreboard():
 
 
 def get_times():
-    now = datetime.now()
+    now = datetime.now(TIMEZONE)
     soup = BeautifulSoup(requests.get(SCOREBOARD_URL).text, "html.parser")
 
     teams = {}
@@ -101,7 +102,7 @@ def get_times():
         if not task_name.startswith("pwn"):
             continue
         task_name = task_name[3:]
-        task_start = datetime.strptime(cols[2].text, "%Y-%m-%d %H:%M:%S")
+        task_start = datetime.strptime(cols[2].text, "%Y-%m-%d %H:%M:%S").astimezone(TIMEZONE)
         task_times[task_name] = int((now - task_start).total_seconds())
 
     score_table = soup.find("table", id="scores")
